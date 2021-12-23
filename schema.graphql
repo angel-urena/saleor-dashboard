@@ -6421,7 +6421,7 @@ type Shop {
   availableExternalAuthentications: [ExternalAuthentication!]!
   availableShippingMethods(channel: String!, address: AddressInput): [ShippingMethod]
   channelCurrencies: [String!]!
-  countries(languageCode: LanguageCodeEnum): [CountryDisplay!]!
+  countries(languageCode: LanguageCodeEnum, inShippingZones: Boolean): [CountryDisplay!]!
   defaultCountry: CountryDisplay
   defaultMailSenderName: String
   defaultMailSenderAddress: String
