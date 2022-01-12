@@ -102,7 +102,6 @@ export const shippingZoneDetailsFragment = gql`
   ${shippingMethodFragment}
   fragment ShippingZoneDetailsFragment on ShippingZone {
     ...ShippingZoneFragment
-    default
     shippingMethods {
       ...ShippingMethodFragment
     }

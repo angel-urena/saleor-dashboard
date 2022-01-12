@@ -11,15 +11,18 @@ import {
   Typography
 } from "@material-ui/core";
 import Checkbox from "@saleor/components/Checkbox";
-import ConfirmButton, {
-  ConfirmButtonTransitionState
-} from "@saleor/components/ConfirmButton";
+import ConfirmButton from "@saleor/components/ConfirmButton";
 import Form from "@saleor/components/Form";
 import FormSpacer from "@saleor/components/FormSpacer";
 import Hr from "@saleor/components/Hr";
 import ResponsiveTable from "@saleor/components/ResponsiveTable";
 import { ShopInfo_shop_countries } from "@saleor/components/Shop/types/ShopInfo";
 import { buttonMessages } from "@saleor/intl";
+import { ConfirmButtonTransitionState } from "@saleor/macaw-ui";
+import {
+  getCountrySelectionMap,
+  isRestWorldCountriesSelected
+} from "@saleor/shipping/handlers";
 import { ShippingCountriesNotAssigned_shop_countries } from "@saleor/shipping/types/ShippingCountriesNotAssigned";
 import useScrollableDialogStyle from "@saleor/styles/useScrollableDialogStyle";
 import { filter } from "fuzzaldrin";
@@ -31,7 +34,6 @@ import { useStyles } from "./styles";
 interface FormData {
   countries: string[];
   query: string;
-  restOfTheWorld: boolean;
 }
 
 export interface ShippingZoneCountriesAssignDialogProps {
@@ -39,7 +41,6 @@ export interface ShippingZoneCountriesAssignDialogProps {
   countries: ShopInfo_shop_countries[];
   restWorldCountries: ShippingCountriesNotAssigned_shop_countries[];
   initial: string[];
-  isDefault: boolean;
   open: boolean;
   onClose: () => void;
   onConfirm: (data: FormData) => void;
@@ -48,7 +49,6 @@ export interface ShippingZoneCountriesAssignDialogProps {
 const ShippingZoneCountriesAssignDialog: React.FC<ShippingZoneCountriesAssignDialogProps> = props => {
   const {
     confirmButtonState,
-    isDefault,
     onClose,
     countries,
     restWorldCountries,
@@ -63,8 +63,7 @@ const ShippingZoneCountriesAssignDialog: React.FC<ShippingZoneCountriesAssignDia
 
   const initialForm: FormData = {
     countries: initial,
-    query: "",
-    restOfTheWorld: isDefault
+    query: ""
   };
 
   return (
@@ -75,27 +74,48 @@ const ShippingZoneCountriesAssignDialog: React.FC<ShippingZoneCountriesAssignDia
         className={scrollableDialogClasses.form}
       >
         {({ data, change }) => {
-          const countrySelectionMap = countries.reduce((acc, country) => {
-            acc[country.code] = !!data.countries.find(
-              selectedCountries => selectedCountries === country.code
-            );
-            return acc;
-          }, {});
+          const countrySelectionMap = getCountrySelectionMap(
+            countries,
+            data.countries
+          );
+          const restOfTheWorld = isRestWorldCountriesSelected(
+            restWorldCountries,
+            countrySelectionMap
+          );
           const handleRestOfTheWorldChange = (restOfTheWorld: boolean) => {
             if (restOfTheWorld) {
               change({
                 target: {
                   name: "countries" as keyof FormData,
-                  value: restWorldCountries.map(country => country.code)
+                  value: restWorldCountries.reduce((countries, country) => {
+                    if (
+                      countries.some(
+                        countryCode => countryCode === country.code
+                      )
+                    ) {
+                      return countries;
+                    }
+                    return [...countries, country.code];
+                  }, data.countries)
                 }
               } as any);
             }
-            change({
-              target: {
-                name: "restOfTheWorld" as keyof FormData,
-                value: !data.restOfTheWorld
-              }
-            } as any);
+            if (!restOfTheWorld) {
+              change({
+                target: {
+                  name: "countries" as keyof FormData,
+                  value: restWorldCountries.reduce((countries, country) => {
+                    const restCountryIndex = countries.findIndex(
+                      countryCode => countryCode === country.code
+                    );
+                    if (restCountryIndex !== -1) {
+                      countries.splice(restCountryIndex, 1);
+                    }
+                    return countries;
+                  }, data.countries)
+                }
+              } as any);
+            }
           };
           const handleCountryChange = (
             countryCode: string,
@@ -110,12 +130,6 @@ const ShippingZoneCountriesAssignDialog: React.FC<ShippingZoneCountriesAssignDia
               target: {
                 name: "countries" as keyof FormData,
                 value: updatedCountries
-              }
-            } as any);
-            change({
-              target: {
-                name: "restOfTheWorld" as keyof FormData,
-                value: false
               }
             } as any);
           };
@@ -166,9 +180,10 @@ const ShippingZoneCountriesAssignDialog: React.FC<ShippingZoneCountriesAssignDia
                         className={classes.checkboxCell}
                       >
                         <Checkbox
-                          checked={data.restOfTheWorld}
+                          name="restOfTheWorld"
+                          checked={restOfTheWorld}
                           onChange={() =>
-                            handleRestOfTheWorldChange(!data.restOfTheWorld)
+                            handleRestOfTheWorldChange(!restOfTheWorld)
                           }
                         />
                       </TableCell>
@@ -220,7 +235,6 @@ const ShippingZoneCountriesAssignDialog: React.FC<ShippingZoneCountriesAssignDia
                 <ConfirmButton
                   transitionState={confirmButtonState}
                   color="primary"
-                  variant="contained"
                   type="submit"
                 >
                   <FormattedMessage
