@@ -2169,6 +2169,10 @@ export interface ConfigurationItemInput {
   value?: string | null;
 }
 
+export interface CountryFilterInput {
+  inShippingZones?: boolean | null;
+}
+
 export interface CustomerFilterInput {
   dateJoined?: DateRangeInput | null;
   numberOfOrders?: IntRangeInput | null;
