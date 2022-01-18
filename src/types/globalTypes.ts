@@ -2170,7 +2170,7 @@ export interface ConfigurationItemInput {
 }
 
 export interface CountryFilterInput {
-  inShippingZones?: boolean | null;
+  attachedToShippingZones?: boolean | null;
 }
 
 export interface CustomerFilterInput {
